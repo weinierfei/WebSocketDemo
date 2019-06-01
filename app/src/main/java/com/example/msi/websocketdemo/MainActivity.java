@@ -15,7 +15,7 @@ public class MainActivity extends AppCompatActivity implements WebSocketListener
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        WsManager manager = WsManager.getInstance();
+        WsManager manager = WsManager.Companion.getInstance();
         manager.setWebSocketListener(this, MessageTypeEnum.OTHER_LOGIN.getCode());
         manager.init();
     }
@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity implements WebSocketListener
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        WsManager.getInstance().disconnect();
+        WsManager.Companion.getInstance().disconnect();
     }
 
     @Override
