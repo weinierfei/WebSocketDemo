@@ -1,5 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-
+import groovy.util.slurpersupport.GPathResult
 buildscript {
 
     repositories {
@@ -8,6 +8,8 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${KOTLIN_VERSION}"
+        classpath "org.jetbrains.kotlin:kotlin-android-extensions:$KOTLIN_VERSION"
 
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -24,4 +26,55 @@ allprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+subprojects {
+    it.afterEvaluate {
+        PluginManager pm = it.getPluginManager()
+        if (pm.hasPlugin("android") || pm.hasPlugin("android-library")) {
+
+            Logger logger = Logging.getLogger('KTWorkSpaceConfig')
+
+            String ktSrcDir = "src" + File.separator + "main" + File.separator + "kotlin"
+
+            // create kotlin srcDir
+            boolean isKtSrcDirExist
+            File ktSrcFile = new File(it.projectDir, ktSrcDir)
+            if (ktSrcFile.exists()) {
+                if (ktSrcFile.isDirectory()) {
+                    isKtSrcDirExist = true
+                } else {
+                    logger.log(LogLevel.ERROR, "Failured to create kt srcDir[${ktSrcFile}] in module[$it]," +
+                            " Source directory is not a directory")
+                }
+            } else {
+                try {
+                    GFileUtils.mkdirs(ktSrcFile)
+                    isKtSrcDirExist = true
+                } catch (Exception ex) {
+                    logger.log(LogLevel.ERROR, "Failured to create kotlin srcDir[${ktSrcFile}] in module[$it]," +
+                            " reason:$ex")
+                }
+            }
+
+            if (isKtSrcDirExist) {
+                // add kotlin srcDir to sourceSets
+                it['android']["sourceSets"]["main"]["java"]["srcDirs"] += ktSrcDir
+
+                String androidManifestFilePath= "src" + File.separator + "main" + File.separator + "AndroidManifest.xml"
+
+                // create package
+                GPathResult androidManifest = new XmlSlurper().parse(it.file(androidManifestFilePath))
+                String packageName = androidManifest.'@package'
+                if (packageName == null || packageName.length() == 0|| packageName.toString().matches("\\s*")) {
+                    throw new GradleException("@package not found in AndroidManifest[$it]")
+                } else {
+                    File packageFile = new File(ktSrcFile, packageName)
+                    if (!packageFile.exists()) {
+                        GFileUtils.mkdirs(packageFile)
+                    }
+                }
+            }
+        }
+    }
 }
